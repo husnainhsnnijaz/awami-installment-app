@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -42,7 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _initDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'installment_db.sqlite');
+    final path = p.join(dbPath, 'installment_db.sqlite');
 
     _db = await openDatabase(
       path,
@@ -77,7 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     pdf.addPage(
       pw.Page(
-        build: (pw.Context context) {
+        build: (pw.Context pdfContext) {
           double remaining = customer['total_amount'] - (customer['paid_amount'] + installmentPaid);
           return pw.Padding(
             padding: const pw.EdgeInsets.all(24),
@@ -141,7 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final amountController = TextEditingController(text: customer['monthly_installment'].toString());
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: Text("Receive Payment - ${customer['name']}"),
         content: TextField(
           controller: amountController,
@@ -149,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           decoration: const InputDecoration(labelText: "Amount Received (Rs)"),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
               double paid = double.tryParse(amountController.text) ?? 0.0;
@@ -161,7 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   where: 'id = ?',
                   whereArgs: [customer['id']],
                 );
-                Navigator.pop(ctx);
+                if (mounted) Navigator.pop(dialogCtx);
                 _loadCustomers();
                 _generatePdfAndShare(customer, paid);
               }
@@ -182,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         title: const Text("Add New Customer"),
         content: SingleChildScrollView(
           child: Column(
@@ -196,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
               await _db.insert('Customers', {
@@ -207,7 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 'paid_amount': 0.0,
                 'monthly_installment': double.tryParse(monthlyCtrl.text) ?? 0.0,
               });
-              Navigator.pop(ctx);
+              if (mounted) Navigator.pop(dialogCtx);
               _loadCustomers();
             },
             child: const Text("Save Customer"),
